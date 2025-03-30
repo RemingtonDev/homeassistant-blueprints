@@ -42,10 +42,12 @@ The goal was to create **a fully integrated smart alarm experience**, where armi
 2. Import this blueprint into Home Assistant via the Blueprint UI:
    - In Home Assistant, go to **Settings → Automations & Scenes → Blueprints**
    - Click **Import Blueprint**
-   - Paste in the **raw GitHub URL** to the `blueprint.yaml` file
+   - Paste in the **raw GitHub URL** to the `alarmo_bosch_twoway_sync.yaml` file
 3. Create an automation from the imported blueprint.
 4. Select your Alarmo panel and your Bosch alarm panel entities.
 5. Done! Your systems should now sync automatically.
+
+[![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FRemingtonDev%2Fhomeassistant-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Falarmo_bosch_delay%2Falarmo_bosch_twoway_sync.yaml)
 
 ## 💬 Support
 
