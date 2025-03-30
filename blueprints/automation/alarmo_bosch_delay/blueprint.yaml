@@ -1,0 +1,198 @@
+blueprint:
+  name: Alarmo Bosch Delayed Sync
+  description: >-
+    Two-way sync between Alarmo and Bosch while preserving a parallel arming countdown.
+    Syncs transitional "arming" as well as final states (disarmed, armed_home, armed_away, armed_night).
+  domain: automation
+
+  input:
+    alarmo_entity:
+      name: Alarmo Entity
+      description: "The Alarmo alarm_control_panel entity."
+      selector:
+        entity:
+          domain: alarm_control_panel
+    bosch_panel:
+      name: Bosch Panel
+      description: "Bosch's alarm_control_panel entity (or your template alarm panel)."
+      selector:
+        entity:
+          domain: alarm_control_panel
+
+trigger:
+  #######################################################################
+  #  ALARMO → BOSCH
+  #######################################################################
+  # When Alarmo goes from disarmed to arming
+  - platform: state
+    entity_id: !input alarmo_entity
+    from: "disarmed"
+    to: "arming"
+    id: alarmo_disarmed_to_arming
+
+  # When Alarmo hits final armed states
+  - platform: state
+    entity_id: !input alarmo_entity
+    to: "armed_home"
+    id: alarmo_final_home
+
+  - platform: state
+    entity_id: !input alarmo_entity
+    to: "armed_away"
+    id: alarmo_final_away
+
+  - platform: state
+    entity_id: !input alarmo_entity
+    to: "armed_night"
+    id: alarmo_final_night
+
+  # When Alarmo disarms
+  - platform: state
+    entity_id: !input alarmo_entity
+    to: "disarmed"
+    id: alarmo_disarmed
+
+
+  #######################################################################
+  #  BOSCH → ALARMO
+  #######################################################################
+  # When Bosch goes from disarmed to arming
+  - platform: state
+    entity_id: !input bosch_panel
+    from: "disarmed"
+    to: "arming"
+    id: bosch_disarmed_to_arming
+
+  # When Bosch hits final armed states
+  - platform: state
+    entity_id: !input bosch_panel
+    to: "armed_home"
+    id: bosch_final_home
+
+  - platform: state
+    entity_id: !input bosch_panel
+    to: "armed_away"
+    id: bosch_final_away
+
+  - platform: state
+    entity_id: !input bosch_panel
+    to: "armed_night"
+    id: bosch_final_night
+
+  # When Bosch disarms
+  - platform: state
+    entity_id: !input bosch_panel
+    to: "disarmed"
+    id: bosch_disarmed
+
+condition: []
+
+action:
+  - choose:
+      ###################################################################
+      #  ALARMO → BOSCH
+      ###################################################################
+      # (A) Alarmo from disarmed to arming --> start Bosch arming if Bosch is disarmed
+      - conditions:
+          # match the trigger ID
+          - condition: template
+            value_template: "{{ trigger.id == 'alarmo_disarmed_to_arming' }}"
+          # ensure Bosch is currently disarmed
+          - condition: state
+            entity_id: !input bosch_panel
+            state: "disarmed"
+        sequence:
+          - service: alarm_control_panel.alarm_arm_away
+            target:
+              entity_id: !input bosch_panel
+
+      # (B) Alarmo final states
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'alarmo_final_home' }}"
+        sequence:
+          - service: alarm_control_panel.alarm_arm_home
+            target:
+              entity_id: !input bosch_panel
+
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'alarmo_final_away' }}"
+        sequence:
+          - service: alarm_control_panel.alarm_arm_away
+            target:
+              entity_id: !input bosch_panel
+
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'alarmo_final_night' }}"
+        sequence:
+          - service: alarm_control_panel.alarm_arm_custom_bypass
+            target:
+              entity_id: !input bosch_panel
+
+      # (C) Alarmo disarmed
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'alarmo_disarmed' }}"
+        sequence:
+          - service: alarm_control_panel.alarm_disarm
+            target:
+              entity_id: !input bosch_panel
+
+
+      ###################################################################
+      #  BOSCH → ALARMO
+      ###################################################################
+      # (D) Bosch from disarmed to arming --> start Alarmo arming if Alarmo is disarmed
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'bosch_disarmed_to_arming' }}"
+          - condition: state
+            entity_id: !input alarmo_entity
+            state: "disarmed"
+        sequence:
+          - service: alarmo.arm
+            data:
+              entity_id: !input alarmo_entity
+              mode: away
+
+      # (E) Bosch final states
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'bosch_final_home' }}"
+        sequence:
+          - service: alarmo.arm
+            data:
+              entity_id: !input alarmo_entity
+              mode: home
+
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'bosch_final_away' }}"
+        sequence:
+          - service: alarmo.arm
+            data:
+              entity_id: !input alarmo_entity
+              mode: away
+
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'bosch_final_night' }}"
+        sequence:
+          - service: alarmo.arm
+            data:
+              entity_id: !input alarmo_entity
+              mode: night
+
+      # (F) Bosch disarmed
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'bosch_disarmed' }}"
+        sequence:
+          - service: alarmo.disarm
+            data:
+              entity_id: !input alarmo_entity
+
+mode: parallel
+max: 10
